@@ -1,22 +1,19 @@
+/* styles.css */
+
 body {
     font-family: Arial, sans-serif;
+    text-align: center;
     margin: 20px;
 }
 
-.input-container {
+form {
     margin-bottom: 20px;
 }
 
-#ticker {
-    width: 200px;
-    padding: 5px;
+label {
+    margin-right: 10px;
 }
 
-button {
-    padding: 5px 10px;
-}
-
-canvas {
-    max-width: 100%;
-    margin-bottom: 50px;
+input {
+    margin-right: 20px;
 }
