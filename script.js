@@ -2,7 +2,7 @@
 
 // Your Alpha Vantage API key
 const API_KEY = 'E1ICKSV019F07HFL';
-
+// script.js
 document.getElementById('fetchData').addEventListener('click', () => {
     const ticker = document.getElementById('ticker').value.trim().toUpperCase();
     if (ticker) {
@@ -19,34 +19,54 @@ async function fetchHistoricalData(ticker) {
         const response = await fetch(url);
         const data = await response.json();
 
+        console.log('Historical Data API Response:', data); // For debugging
+
         if (data['Time Series (Daily)']) {
-            processHistoricalData(data['Time Series (Daily)']);
+            processHistoricalData(data['Time Series (Daily)'], ticker);
+        } else if (data['Error Message']) {
+            alert(`Error fetching data: ${data['Error Message']}`);
+        } else if (data['Note']) {
+            alert(`API limit reached: ${data['Note']}`);
         } else {
-            alert('Error fetching data. Please check the ticker symbol and try again.');
+            alert('Unknown error occurred. Please try again later.');
         }
     } catch (error) {
         console.error('Error fetching historical data:', error);
+        alert('An error occurred while fetching historical data.');
     }
 }
 
-function processHistoricalData(timeSeries) {
+function processHistoricalData(timeSeries, ticker) {
     const parsedData = [];
 
     for (const date in timeSeries) {
         const year = new Date(date).getFullYear();
-        if (year >= 2010 && year <= 2023) {
-            parsedData.push({
-                date: date,
-                year: year,
-                month: new Date(date).getMonth() + 1,
-                close: parseFloat(timeSeries[date]['5. adjusted close']),
-            });
+        const month = new Date(date).getMonth() + 1;
+        const close = parseFloat(timeSeries[date]['5. adjusted close']);
+
+        parsedData.push({
+            date: date,
+            year: year,
+            month: month,
+            close: close,
+        });
+    }
+
+    // Filter data for years from 2010 to 2023
+    const filteredData = parsedData.filter(entry => entry.year >= 2010 && entry.year <= 2023);
+
+    if (filteredData.length === 0) {
+        alert(`No historical data available from 2010 for ticker ${ticker}.`);
+        // Clear the chart if necessary
+        if (window.yearlyChart) {
+            window.yearlyChart.destroy();
         }
+        return;
     }
 
     // Group data by year and month
     const monthlyData = {};
-    parsedData.forEach(entry => {
+    filteredData.forEach(entry => {
         const key = `${entry.year}-${entry.month}`;
         if (!monthlyData[key]) {
             monthlyData[key] = [];
@@ -65,10 +85,10 @@ function processHistoricalData(timeSeries) {
         monthlyAverages[year].push({ month: parseInt(month), avgClose: avgClose });
     }
 
-    plotYearlyChart(monthlyAverages);
+    plotYearlyChart(monthlyAverages, ticker);
 }
 
-function plotYearlyChart(monthlyAverages) {
+function plotYearlyChart(monthlyAverages, ticker) {
     const datasets = [];
     const colors = [
         '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
@@ -77,7 +97,8 @@ function plotYearlyChart(monthlyAverages) {
     ];
 
     let colorIndex = 0;
-    for (const year in monthlyAverages) {
+    const years = Object.keys(monthlyAverages).sort();
+    years.forEach(year => {
         const dataPoints = monthlyAverages[year].sort((a, b) => a.month - b.month);
         const data = dataPoints.map(dp => ({ x: dp.month, y: dp.avgClose }));
         datasets.push({
@@ -87,7 +108,7 @@ function plotYearlyChart(monthlyAverages) {
             fill: false,
         });
         colorIndex++;
-    }
+    });
 
     const ctx = document.getElementById('yearlyChart').getContext('2d');
     if (window.yearlyChart) {
@@ -99,6 +120,16 @@ function plotYearlyChart(monthlyAverages) {
             datasets: datasets,
         },
         options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Yearly Average Closing Prices (${years[0]}-${years[years.length -1]}) for ${ticker}`,
+                },
+                legend: {
+                    display: true,
+                    position: 'right',
+                },
+            },
             scales: {
                 x: {
                     type: 'linear',
@@ -123,12 +154,6 @@ function plotYearlyChart(monthlyAverages) {
                     },
                 },
             },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'right',
-                },
-            },
         },
     });
 }
@@ -136,24 +161,28 @@ function plotYearlyChart(monthlyAverages) {
 async function fetchCurrentYearData(ticker) {
     try {
         const currentYear = new Date().getFullYear();
-        const startDate = `${currentYear}-01-01`;
-        const endDate = new Date().toISOString().split('T')[0];
-
         const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&apikey=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
 
+        console.log('Current Year Data API Response:', data); // For debugging
+
         if (data['Time Series (Daily)']) {
-            processCurrentYearData(data['Time Series (Daily)'], currentYear);
+            processCurrentYearData(data['Time Series (Daily)'], currentYear, ticker);
+        } else if (data['Error Message']) {
+            alert(`Error fetching data: ${data['Error Message']}`);
+        } else if (data['Note']) {
+            alert(`API limit reached: ${data['Note']}`);
         } else {
-            alert('Error fetching current year data.');
+            alert('Unknown error occurred. Please try again later.');
         }
     } catch (error) {
         console.error('Error fetching current year data:', error);
+        alert('An error occurred while fetching current year data.');
     }
 }
 
-function processCurrentYearData(timeSeries, currentYear) {
+function processCurrentYearData(timeSeries, currentYear, ticker) {
     const parsedData = [];
 
     for (const date in timeSeries) {
@@ -166,12 +195,21 @@ function processCurrentYearData(timeSeries, currentYear) {
         }
     }
 
+    if (parsedData.length === 0) {
+        alert(`No data available for the current year for ticker ${ticker}.`);
+        // Clear the chart if necessary
+        if (window.currentYearChart) {
+            window.currentYearChart.destroy();
+        }
+        return;
+    }
+
     const sortedData = parsedData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    plotCurrentYearChart(sortedData, currentYear);
+    plotCurrentYearChart(sortedData, currentYear, ticker);
 }
 
-function plotCurrentYearChart(data, currentYear) {
+function plotCurrentYearChart(data, currentYear, ticker) {
     const ctx = document.getElementById('currentYearChart').getContext('2d');
     if (window.currentYearChart) {
         window.currentYearChart.destroy();
@@ -181,13 +219,22 @@ function plotCurrentYearChart(data, currentYear) {
         data: {
             labels: data.map(entry => entry.date),
             datasets: [{
-                label: `${currentYear} Closing Prices`,
+                label: `${currentYear} Closing Prices for ${ticker}`,
                 data: data.map(entry => entry.close),
                 borderColor: '#007bff',
                 fill: false,
             }],
         },
         options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: `${currentYear} Closing Prices for ${ticker}`,
+                },
+                legend: {
+                    display: false,
+                },
+            },
             scales: {
                 x: {
                     type: 'time',
@@ -210,13 +257,8 @@ function plotCurrentYearChart(data, currentYear) {
                     },
                 },
             },
-            plugins: {
-                legend: {
-                    display: false,
-                },
-            },
         },
     });
 
-    document.getElementById('currentYearTitle').textContent = `${currentYear} Closing Prices`;
+    document.getElementById('currentYearTitle').textContent = `${currentYear} Closing Prices for ${ticker}`;
 }
