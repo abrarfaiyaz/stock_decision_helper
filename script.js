@@ -1,8 +1,8 @@
 // script.js
 
-// Your Alpha Vantage API key
-const API_KEY = 'E1ICKSV019F07HFL';
-// script.js
+// Your Finnhub API key
+const API_KEY = 'crkrbnhr01qhc7mj8etgcrkrbnhr01qhc7mj8eu0'; // Replace with your actual API key
+
 document.getElementById('fetchData').addEventListener('click', () => {
     const ticker = document.getElementById('ticker').value.trim().toUpperCase();
     if (ticker) {
@@ -13,22 +13,27 @@ document.getElementById('fetchData').addEventListener('click', () => {
     }
 });
 
+// Convert date to Unix timestamp
+function dateToTimestamp(dateStr) {
+    return Math.floor(new Date(dateStr).getTime() / 1000);
+}
+
 async function fetchHistoricalData(ticker) {
     try {
-        const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&outputsize=full&apikey=${API_KEY}`;
+        const startDate = dateToTimestamp('2010-01-01');
+        const endDate = dateToTimestamp('2023-12-31');
+        const url = `https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${startDate}&to=${endDate}&token=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
 
         console.log('Historical Data API Response:', data); // For debugging
 
-        if (data['Time Series (Daily)']) {
-            processHistoricalData(data['Time Series (Daily)'], ticker);
-        } else if (data['Error Message']) {
-            alert(`Error fetching data: ${data['Error Message']}`);
-        } else if (data['Note']) {
-            alert(`API limit reached: ${data['Note']}`);
+        if (data.s === 'ok') {
+            processHistoricalData(data, ticker);
+        } else if (data.s === 'no_data') {
+            alert(`No historical data available for ticker ${ticker}.`);
         } else {
-            alert('Unknown error occurred. Please try again later.');
+            alert('Error fetching data. Please check the ticker symbol and try again.');
         }
     } catch (error) {
         console.error('Error fetching historical data:', error);
@@ -36,13 +41,15 @@ async function fetchHistoricalData(ticker) {
     }
 }
 
-function processHistoricalData(timeSeries, ticker) {
+function processHistoricalData(data, ticker) {
     const parsedData = [];
 
-    for (const date in timeSeries) {
-        const year = new Date(date).getFullYear();
-        const month = new Date(date).getMonth() + 1;
-        const close = parseFloat(timeSeries[date]['5. adjusted close']);
+    for (let i = 0; i < data.t.length; i++) {
+        const timestamp = data.t[i];
+        const date = new Date(timestamp * 1000);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const close = data.c[i];
 
         parsedData.push({
             date: date,
@@ -161,20 +168,20 @@ function plotYearlyChart(monthlyAverages, ticker) {
 async function fetchCurrentYearData(ticker) {
     try {
         const currentYear = new Date().getFullYear();
-        const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&apikey=${API_KEY}`;
+        const startDate = dateToTimestamp(`${currentYear}-01-01`);
+        const endDate = Math.floor(Date.now() / 1000);
+        const url = `https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${startDate}&to=${endDate}&token=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
 
         console.log('Current Year Data API Response:', data); // For debugging
 
-        if (data['Time Series (Daily)']) {
-            processCurrentYearData(data['Time Series (Daily)'], currentYear, ticker);
-        } else if (data['Error Message']) {
-            alert(`Error fetching data: ${data['Error Message']}`);
-        } else if (data['Note']) {
-            alert(`API limit reached: ${data['Note']}`);
+        if (data.s === 'ok') {
+            processCurrentYearData(data, currentYear, ticker);
+        } else if (data.s === 'no_data') {
+            alert(`No data available for the current year for ticker ${ticker}.`);
         } else {
-            alert('Unknown error occurred. Please try again later.');
+            alert('Error fetching current year data.');
         }
     } catch (error) {
         console.error('Error fetching current year data:', error);
@@ -182,17 +189,18 @@ async function fetchCurrentYearData(ticker) {
     }
 }
 
-function processCurrentYearData(timeSeries, currentYear, ticker) {
+function processCurrentYearData(data, currentYear, ticker) {
     const parsedData = [];
 
-    for (const date in timeSeries) {
-        const year = new Date(date).getFullYear();
-        if (year === currentYear) {
-            parsedData.push({
-                date: date,
-                close: parseFloat(timeSeries[date]['5. adjusted close']),
-            });
-        }
+    for (let i = 0; i < data.t.length; i++) {
+        const timestamp = data.t[i];
+        const date = new Date(timestamp * 1000);
+        const close = data.c[i];
+
+        parsedData.push({
+            date: date.toISOString().split('T')[0],
+            close: close,
+        });
     }
 
     if (parsedData.length === 0) {
