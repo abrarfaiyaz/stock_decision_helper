@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Price Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>📈 Stock Price Analysis</h1>
+    <div class="input-container">
+        <label for="ticker">Enter the stock ticker symbol (e.g., AAPL):</label>
+        <input type="text" id="ticker" value="AAPL">
+        <button id="fetchData">Fetch Data</button>
+    </div>
+    <h2>Yearly Average Closing Prices (2010-2023)</h2>
+    <canvas id="yearlyChart"></canvas>
+    <h2 id="currentYearTitle"></h2>
+    <canvas id="currentYearChart"></canvas>
+
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include your JavaScript file -->
+    <script src="script.js"></script>
+</body>
+</html>

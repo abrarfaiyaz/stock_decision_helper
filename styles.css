@@ -1,0 +1,22 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.input-container {
+    margin-bottom: 20px;
+}
+
+#ticker {
+    width: 200px;
+    padding: 5px;
+}
+
+button {
+    padding: 5px 10px;
+}
+
+canvas {
+    max-width: 100%;
+    margin-bottom: 50px;
+}
