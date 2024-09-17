@@ -1,7 +1,7 @@
 // script.js
 
 // Your Alpha Vantage API key
-const API_KEY = 'YOUR_ALPHA_VANTAGE_API_KEY';
+const API_KEY = 'E1ICKSV019F07HFL';
 
 document.getElementById('fetchData').addEventListener('click', () => {
     const ticker = document.getElementById('ticker').value.trim().toUpperCase();
